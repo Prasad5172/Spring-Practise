@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RefreshTokenRequest {
+public class TokenRequest {
     private String token ;
 }

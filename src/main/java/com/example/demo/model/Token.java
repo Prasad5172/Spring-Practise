@@ -23,11 +23,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Table(name = "refresh_token")
-public class RefreshToken {
+public class Token {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    private String token;
+    private String tokenId;
     private Instant expiredate;
     @ManyToOne
     @JoinColumn(name = "user_id",referencedColumnName = "id")

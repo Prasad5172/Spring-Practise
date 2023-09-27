@@ -15,15 +15,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.RequestsModels.AuthenticationRequest;
-import com.example.demo.RequestsModels.RefreshTokenRequest;
 import com.example.demo.RequestsModels.RegisterRequest;
+import com.example.demo.RequestsModels.TokenRequest;
 import com.example.demo.configure.JwtUtils;
 import com.example.demo.dao.UserRepository;
-import com.example.demo.model.RefreshToken;
 import com.example.demo.model.Role;
+import com.example.demo.model.Token;
 import com.example.demo.model.User;
 import com.example.demo.responceModels.JwtResponce;
-import com.example.demo.service.RefreshTokenService;
+import com.example.demo.service.TokenService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class AuthenticationController {
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final RefreshTokenService refreshTokenService;
+    private final TokenService tokenService;
 
     @PostMapping("register")
     public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest request) {
@@ -59,12 +59,12 @@ public class AuthenticationController {
                 .authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         if (authentication.isAuthenticated()) {
             var user = userRepository.findByEmail(request.getEmail());
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(request.getEmail());
+            Token refreshToken = tokenService.createRefreshToken(request.getEmail());
             var jwt = jwtUtils.generateToken(user);
             return ResponseEntity.ok(JwtResponce
                     .builder()
                     .accesstoken(jwt)
-                    .token(refreshToken.getToken())
+                    .tokenId(refreshToken.getTokenId())
                     .build());
         } else {
             throw new UsernameNotFoundException("Invalid user request!");
@@ -72,18 +72,18 @@ public class AuthenticationController {
     }
 
     @PostMapping("refreshtoken")
-    public ResponseEntity<JwtResponce> refreshToken(@Valid @RequestBody RefreshTokenRequest token) {
-        Optional<RefreshToken> refreshTokenOpt = refreshTokenService.findByToken(token.getToken());
+    public ResponseEntity<JwtResponce> refreshToken(@Valid @RequestBody TokenRequest token) {
+        Optional<Token> refreshTokenOpt = tokenService.findByToken(token.getToken());
 
         if (refreshTokenOpt.isPresent()) {
-            RefreshToken refreshToken = refreshTokenOpt.get();
-            refreshToken = refreshTokenService.verifytoken(refreshToken);
+            Token refreshToken = refreshTokenOpt.get();
+            refreshToken = tokenService.verifytoken(refreshToken);
 
             String accessToken = jwtUtils.generateToken(refreshToken.getUser());
 
             JwtResponce response = JwtResponce.builder()
                     .accesstoken(accessToken)
-                    .token(token.getToken())
+                    .tokenId(refreshToken.getTokenId())
                     .build();
 
             return ResponseEntity.ok(response);
