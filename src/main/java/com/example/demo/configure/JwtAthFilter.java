@@ -10,13 +10,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import com.example.demo.dao.UserRepository;
+import com.example.demo.token.TokenRepository;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 
 public class JwtAthFilter extends OncePerRequestFilter {
 
@@ -26,6 +29,9 @@ public class JwtAthFilter extends OncePerRequestFilter {
     private UserRepository userRepository;
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private TokenRepository tokenRepository;
 
     public JwtAthFilter(HandlerExceptionResolver exceptionResolver) {
         this.exceptionResolver = exceptionResolver;
@@ -37,9 +43,10 @@ public class JwtAthFilter extends OncePerRequestFilter {
 
             throws ServletException, IOException {
                 System.out.println("doFilterInternal");
-        final String authHeader = request.getHeader("Authorization");
+        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String userEmail;
         final String jwtToken;
+        // System.out.println(authHeader);
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer")) {
                 filterChain.doFilter(request, response);
@@ -50,7 +57,11 @@ public class JwtAthFilter extends OncePerRequestFilter {
             System.out.println(userEmail);
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userRepository.findByEmail(userEmail);
-                if (jwtUtils.validateToken(jwtToken, userDetails)) {
+                Boolean isTokenValid = tokenRepository.findByToken(jwtToken).map(t -> !t.getExpired() && !t.getRevoked()).orElse(false);
+                if(!isTokenValid){
+                    throw new ExpiredJwtException(null, null, "token is expired");
+                }
+                if (jwtUtils.validateToken(jwtToken, userDetails ) && isTokenValid ) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
                             null, userDetails.getAuthorities());
                     authToken.setDetails((new WebAuthenticationDetailsSource().buildDetails(request)));

@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class JwtResponce {
     private String accesstoken;
-    private String tokenId;
+    private String refreshtoken;
 }

@@ -1,4 +1,4 @@
-package com.example.demo.RequestsModels;
+package com.example.demo.token;
 
 import org.springframework.stereotype.Component;
 

@@ -50,7 +50,7 @@ public class ApiExceptionHandler {
             errorDetail= ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(403), ex.getMessage());
             errorDetail.setProperty("Reason", "Not a valid jwt");
         }
-        if(ex instanceof RuntimeException){
+        if(ex instanceof IllegalArgumentException){
             errorDetail= ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(403), ex.getMessage());
             errorDetail.setProperty("Reason", "Not a valid jwt");
         }
