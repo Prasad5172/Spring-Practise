@@ -30,29 +30,29 @@ public class JwtUtils {
     private int jwtRefreshExpirationMs;
 
     public String extractUsername(String token) {
-        System.out.println("extractUsername");
+        // System.out.println("extractUsername");
         return extractClaim(token, Claims::getSubject);
     }
 
     public Date extractExpiration(String token) {
-        System.out.println("extractExpiration");
+        // System.out.println("extractExpiration");
         return extractClaim(token, Claims::getExpiration);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        System.out.println("extractClaim");
+        // System.out.println("extractClaim");
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
     public Claims extractAllClaims(String token) {
-        System.out.println("extractAllClaims");
+        // System.out.println("extractAllClaims");
         return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token).getBody();
 
     }
 
     public Boolean isTokenExpired(String token) {
-        System.out.println("isTokenExpired");
+        // System.out.println("isTokenExpired");
         return extractExpiration(token).before(new Date());
     }
 
@@ -62,12 +62,12 @@ public class JwtUtils {
     }
 
     public String generateToken(Map<String, Object> claims, UserDetails userDetails) {
-        // System.out.println("createToken");
+        // System.out.println("createToken"+jwtExpirationMs);
         return buildJwt(claims, userDetails, jwtExpirationMs);
     }
 
     public String generateRefreshToken(UserDetails userDetails) {
-        System.out.println("createToken");
+        // System.out.println("createRefreshToken "+ jwtRefreshExpirationMs);
         return buildJwt(new HashMap<>(), userDetails, jwtRefreshExpirationMs);
     }
 
@@ -82,7 +82,7 @@ public class JwtUtils {
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {
-        System.out.println("validateToken");
+        // System.out.println("validateToken");
         final String username = extractUsername(token);
         try {
             return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));

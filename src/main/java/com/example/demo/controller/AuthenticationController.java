@@ -35,6 +35,7 @@ public class AuthenticationController {
 
     @PostMapping("authenticate")
     public ResponseEntity<JwtResponce> authenciate(@RequestBody @Valid AuthenticationRequest request) {
+        System.out.println("authenticate");
         return authenticationService.authenciate(request);
     }
 
@@ -43,7 +44,11 @@ public class AuthenticationController {
             throws StreamWriteException, DatabindException, IOException {
         authenticationService.refreshToken(request, response);
     }
-    
+    @GetMapping("confirm")
+    public String confirm(@RequestParam("token") String token) {
+        System.out.println("confirm");
+        return authenticationService.confirmToken(token);
+    }
 
     
 }

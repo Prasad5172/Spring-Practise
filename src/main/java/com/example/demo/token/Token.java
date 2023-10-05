@@ -3,7 +3,9 @@ package com.example.demo.token;
 import java.time.Instant;
 
 import com.example.demo.model.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,6 +30,7 @@ import lombok.NoArgsConstructor;
 public class Token {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "token_id")
     private int id;
 
     private String token;
@@ -39,7 +42,8 @@ public class Token {
 
     private Boolean revoked;
 
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "user_id",referencedColumnName = "id")
+    @JoinColumn(name = "user_id",referencedColumnName = "user_id")
     private User user;
 }

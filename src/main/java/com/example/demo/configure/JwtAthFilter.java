@@ -10,6 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import com.example.demo.dao.UserRepository;
+import com.example.demo.exception.TokenException;
 import com.example.demo.token.TokenRepository;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -37,36 +38,48 @@ public class JwtAthFilter extends OncePerRequestFilter {
         this.exceptionResolver = exceptionResolver;
     }
 
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 
             throws ServletException, IOException {
-                System.out.println("doFilterInternal");
+        if (request.getServletPath().contains("/api/v1/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        System.out.println("doFilterInternal");
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String userEmail;
         final String jwtToken;
-        // System.out.println(authHeader);
-        try {
+      
             if (authHeader == null || !authHeader.startsWith("Bearer")) {
+                System.out.println("authheader is null");
                 filterChain.doFilter(request, response);
                 return;
             }
             jwtToken = authHeader.substring(7);
             userEmail = jwtUtils.extractUsername(jwtToken);
             System.out.println(userEmail);
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userRepository.findByEmail(userEmail);
-                Boolean isTokenValid = tokenRepository.findByToken(jwtToken).map(t -> !t.getExpired() && !t.getRevoked()).orElse(false);
-                if(!isTokenValid){
-                    throw new ExpiredJwtException(null, null, "token is expired");
-                }
-                if (jwtUtils.validateToken(jwtToken, userDetails ) && isTokenValid ) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-                            null, userDetails.getAuthorities());
-                    authToken.setDetails((new WebAuthenticationDetailsSource().buildDetails(request)));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                    filterChain.doFilter(request, response);
+            try {
+            if (userEmail != null) {
+                if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = userRepository.findByEmail(userEmail);
+                    var userTokenFromDB = tokenRepository.findByToken(jwtToken);
+                    System.out.println(userTokenFromDB);
+                    if(userTokenFromDB.isEmpty()){
+                        throw new TokenException(jwtToken, "token is not valid");
+                    }
+                    Boolean isTokenValid = userTokenFromDB
+                            .map(t -> !t.getExpired() && !t.getRevoked()).orElse(false);
+                    if (!isTokenValid) {
+                        throw new ExpiredJwtException(null, null, "token is expired");
+                    }
+                    if (jwtUtils.validateToken(jwtToken, userDetails) && isTokenValid) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null, userDetails.getAuthorities());
+                        authToken.setDetails((new WebAuthenticationDetailsSource().buildDetails(request)));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             }
             filterChain.doFilter(request, response);
@@ -77,5 +90,4 @@ public class JwtAthFilter extends OncePerRequestFilter {
         }
     }
 
-   
 }

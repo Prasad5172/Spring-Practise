@@ -6,6 +6,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,6 +31,9 @@ public class AppilicationConfig {
             @Override
             public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
                 UserDetails user = userRepository.findByEmail(email);
+                if(user == null){
+                    throw new UsernameNotFoundException(email + "does exists");
+                }
                 return user;
             }
         };
@@ -52,4 +57,6 @@ public class AppilicationConfig {
     public AuthenticationManager authenticationManage(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
+    
+
 }

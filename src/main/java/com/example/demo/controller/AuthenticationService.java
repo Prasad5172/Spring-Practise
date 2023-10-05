@@ -1,8 +1,10 @@
 package com.example.demo.controller;
 
 import java.io.IOException;
-import java.lang.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +18,11 @@ import org.springframework.stereotype.Service;
 import com.example.demo.RequestsModels.AuthenticationRequest;
 import com.example.demo.RequestsModels.RegisterRequest;
 import com.example.demo.configure.JwtUtils;
+import com.example.demo.dao.RoleRepository;
 import com.example.demo.dao.UserRepository;
 import com.example.demo.email.EmailService;
+import com.example.demo.exception.CustomException;
+import com.example.demo.model.ERole;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.responceModels.JwtResponce;
@@ -42,21 +47,35 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final TokenRepository tokenRepository;
     private final EmailService emailService;
+    private final RoleRepository roleRepository;
 
     public ResponseEntity<JwtResponce> register(RegisterRequest request) {
+        Set<Role> roles = new HashSet<>();
+        List<Role> userRole = roleRepository.findByName(ERole.USER);
+        List<Role> userRole1 = roleRepository.findByName(ERole.ADMIN);
+        roles.add(userRole.get(0));
+        roles.add(userRole1.get(0));
+        System.out.println(userRole);
+       
+      
+          if (userRepository.findByEmail(request.getEmail()) != null) {
+            throw new CustomException("Email is already registred");
+          }
+
         var user = User.builder()
                 .firstname(request.getFirstname())
                 .lastname(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
+                .roles(roles)
                 .build();
+        
         var saveUser = userRepository.save(user);
         var jwtToken = jwtUtils.generateToken(user);
         String refreshToken = jwtUtils.generateRefreshToken(user);
         revokeAllUserTokens(user);
         saveUserToken(saveUser, jwtToken);
-        String link = "http://localhost:8080/api/v1//auth/register/confirm?token=" + jwtToken;
+        String link = "http://localhost:8080/api/v1/auth/confirm?token=" + jwtToken;
         emailService.send(
                 user.getEmail(),
                 buildEmail(request.getFirstname(), link));
@@ -78,9 +97,34 @@ public class AuthenticationService {
             throw new UsernameNotFoundException("Invalid user request!");
         }
     }
-    
+
+    @Transactional
+    public String confirmToken(String token) {
+        System.out.println("confirmed token");
+        User user = userRepository.findByEmail(jwtUtils.extractUsername(token));
+        if (user.getIsVerified()) {
+            throw new IllegalStateException("email already confirmed");
+        }
+        if (jwtUtils.isTokenExpired(token)) {
+            
+            throw new IllegalStateException("token expired");
+        }
+        Token confirmationToken = tokenRepository
+                .findByToken(token)
+                .orElseThrow(() -> new IllegalStateException("token not found"));
+        if(confirmationToken ==null){
+            throw new IllegalStateException("token is not valid");
+        }
+        
+        user.setIsVerified(true);
+        userRepository.save(user);
+        return "confirmed";
+    }
+
+
     public void refreshToken(HttpServletRequest request, HttpServletResponse response)
             throws StreamWriteException, DatabindException, IOException {
+              
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String userEmail;
         final String refreshToken;
@@ -106,7 +150,6 @@ public class AuthenticationService {
         }
     }
 
-
     public void revokeAllUserTokens(User user) {
         var validtoken = tokenRepository.findAllValidTokensByUser(user.getId());
         System.out.println(validtoken);
@@ -117,7 +160,7 @@ public class AuthenticationService {
             t.setExpired(true);
             t.setRevoked(true);
         });
-        tokenRepository.saveAll(validtoken);
+        tokenRepository.deleteAll(validtoken);
     }
 
     public Token saveUserToken(User user, String jwtToken) {
@@ -219,5 +262,4 @@ public class AuthenticationService {
                 "</div></div>";
     }
 
-    
 }
