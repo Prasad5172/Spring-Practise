@@ -1,7 +1,7 @@
 package com.example.demo.exception;
 
 
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;

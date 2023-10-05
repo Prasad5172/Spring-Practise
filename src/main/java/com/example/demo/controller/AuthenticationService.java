@@ -1,7 +1,6 @@
 package com.example.demo.controller;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -50,14 +49,13 @@ public class AuthenticationService {
     private final RoleRepository roleRepository;
 
     public ResponseEntity<JwtResponce> register(RegisterRequest request) {
+        System.out.println("register route");
         Set<Role> roles = new HashSet<>();
         List<Role> userRole = roleRepository.findByName(ERole.USER);
-        List<Role> userRole1 = roleRepository.findByName(ERole.ADMIN);
-        roles.add(userRole.get(0));
-        roles.add(userRole1.get(0));
         System.out.println(userRole);
+        roles.add(userRole.get(0));
+        System.out.println(roles);
        
-      
           if (userRepository.findByEmail(request.getEmail()) != null) {
             throw new CustomException("Email is already registred");
           }

@@ -1,11 +1,19 @@
 package com.example.demo.configure;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyUtils;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.EnableGlobalAuthentication;
+import org.springframework.security.authorization.AuthorityAuthorizationManager;
+
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,12 +21,14 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
+
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
-import jakarta.servlet.http.HttpServletResponse;
+import com.example.demo.model.ERole;
+
 
 @Configuration
 @EnableWebSecurity
@@ -42,6 +52,9 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 System.out.println("securityfilterchain");
+                AuthorityAuthorizationManager<RequestAuthorizationContext> hasRoleUser = AuthorityAuthorizationManager
+                                .hasAuthority(ERole.USER.name());
+                hasRoleUser.setRoleHierarchy(roleHierarchy());
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
@@ -56,10 +69,17 @@ public class SecurityConfig {
                                                 .addLogoutHandler(logoutHandler)
                                                 .logoutSuccessHandler((request, responce,
                                                                 authentication) -> SecurityContextHolder
-                                                                                .clearContext()))
-                                                               ;
+                                                                                .clearContext()));
                 return http.build();
         }
 
+        @Bean
+  RoleHierarchy roleHierarchy() {
+    Map<String, List<String>> roleHierarchyMap = new HashMap<>();
+    roleHierarchyMap.put(ERole.ADMIN.name() , List.of(ERole.USER.name()));
+    RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+    roleHierarchy.setHierarchy(RoleHierarchyUtils.roleHierarchyFromMap(roleHierarchyMap));
+    return roleHierarchy;
+  }
 
 }
